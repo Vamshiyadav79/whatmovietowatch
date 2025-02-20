@@ -25,16 +25,17 @@ SORT_OPTIONS = {
     "newest": "release_date.desc"
 }
 
-
 def get_movie(genre, certification, language, sort_by):
-    """Fetch a movie based on user-selected filters."""
+    """Fetch a movie from TMDb API based on user-selected filters."""
 
     genre_id = GENRE_MAPPING.get(genre.lower(), "35")  # Default: Comedy
-    certification_filter = f"&certification={certification}" if certification else ""
-    language_filter = f"&language={language}" if language else "&language=en-US"
+    certification_filter = f"&certification_country=US&certification={certification}" if certification else ""
+    language_filter = f"&with_original_language={language}" if language else ""
     sort_option = SORT_OPTIONS.get(sort_by.lower(), "popularity.desc")  # Default: Popularity
 
     url = f"https://api.themoviedb.org/3/discover/movie?api_key={TMDB_API_KEY}&with_genres={genre_id}{certification_filter}{language_filter}&sort_by={sort_option}"
+
+    print(f"DEBUG: Fetching URL -> {url}")  # ✅ Debugging API call
 
     response = requests.get(url)
     data = response.json()
@@ -43,19 +44,16 @@ def get_movie(genre, certification, language, sort_by):
         random_movie = random.choice(data["results"])
         return {
             "title": random_movie["title"],
-            "year": random_movie["release_date"].split("-")[0] if "release_date" in random_movie else "N/A",
+            "year": random_movie.get("release_date", "N/A")[:4],  # Get only the year
             "rating": random_movie["vote_average"],
-            "poster": f"https://image.tmdb.org/t/p/w500{random_movie['poster_path']}" if random_movie[
-                "poster_path"] else "",
+            "poster": f"https://image.tmdb.org/t/p/w500{random_movie['poster_path']}" if random_movie["poster_path"] else "",
             "link": f"https://www.themoviedb.org/movie/{random_movie['id']}",
         }
     return None
 
-
 @app.route("/")
 def home():
     return render_template("index.html")
-
 
 @app.route("/get-movie", methods=["GET"])
 def get_movie_api():
@@ -69,7 +67,6 @@ def get_movie_api():
     if movie:
         return jsonify(movie)
     return jsonify({"error": "No movie found!"})
-
 
 if __name__ == "__main__":
     app.run(debug=True)
