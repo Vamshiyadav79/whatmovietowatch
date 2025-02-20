@@ -44,12 +44,13 @@ def get_languages():
 def get_movie(genre, certification, language, sort_by):
     """Fetch a movie from TMDb API based on user-selected filters."""
 
-    genre_id = GENRE_MAPPING.get(genre.lower(), "35")  # Default: Comedy
+    genre_id = GENRE_MAPPING.get(genre.lower(), None)  # Allow "Any Genre"
+    genre_filter = f"&with_genres={genre_id}" if genre_id else ""  # Apply only if genre is selected
     certification_filter = f"&certification_country=US&certification={certification}" if certification else ""
     language_filter = f"&with_original_language={language}" if language else ""
     sort_option = SORT_OPTIONS.get(sort_by.lower(), "popularity.desc")  # Default: Popularity
 
-    url = f"https://api.themoviedb.org/3/discover/movie?api_key={TMDB_API_KEY}&with_genres={genre_id}{certification_filter}{language_filter}&sort_by={sort_option}"
+    url = f"https://api.themoviedb.org/3/discover/movie?api_key={TMDB_API_KEY}{genre_filter}{certification_filter}{language_filter}&sort_by={sort_option}"
 
     print(f"DEBUG: Fetching URL -> {url}")  # ✅ Debugging API call
 
@@ -59,14 +60,36 @@ def get_movie(genre, certification, language, sort_by):
     if "results" in data and len(data["results"]) > 0:
         random_movie = random.choice(data["results"])
         return {
+            "status": "success",
             "title": random_movie["title"],
             "year": random_movie.get("release_date", "N/A")[:4],  # Get only the year
             "rating": random_movie["vote_average"],
-            "poster": f"https://image.tmdb.org/t/p/w500{random_movie['poster_path']}" if random_movie[
-                "poster_path"] else "",
+            "poster": f"https://image.tmdb.org/t/p/w500{random_movie['poster_path']}" if random_movie["poster_path"] else "",
             "link": f"https://www.themoviedb.org/movie/{random_movie['id']}",
         }
-    return None
+    else:
+        print("DEBUG: No movies found! Suggesting a random English movie.")
+        return get_random_english_movie()  # ✅ Show alternative
+
+def get_random_english_movie():
+    """Fetches a random popular English movie if no matching movie is found."""
+    url = f"https://api.themoviedb.org/3/discover/movie?api_key={TMDB_API_KEY}&with_original_language=en&sort_by=popularity.desc"
+
+    response = requests.get(url)
+    data = response.json()
+
+    if "results" in data and len(data["results"]) > 0:
+        random_movie = random.choice(data["results"])
+        return {
+            "status": "fallback",
+            "message": "No movie found based on your selected filters. Here is a popular English movie instead.",
+            "title": random_movie["title"],
+            "year": random_movie.get("release_date", "N/A")[:4],  # Get only the year
+            "rating": random_movie["vote_average"],
+            "poster": f"https://image.tmdb.org/t/p/w500{random_movie['poster_path']}" if random_movie["poster_path"] else "",
+            "link": f"https://www.themoviedb.org/movie/{random_movie['id']}",
+        }
+    return {"status": "error", "message": "No movies found, even in English!"}
 
 
 @app.route("/")

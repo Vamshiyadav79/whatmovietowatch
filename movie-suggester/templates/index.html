@@ -15,6 +15,7 @@
         <!-- Genre Selection -->
         <label for="genre" class="h5">Select Genre:</label>
         <select id="genre" class="form-select w-50 mx-auto my-3">
+            <option value="">Any Genre</option>
             <option value="action">Action</option>
             <option value="adventure">Adventure</option>
             <option value="animation">Animation</option>
@@ -49,9 +50,7 @@
 
         <!-- Language Selection -->
         <label for="language" class="h5">Select Language:</label>
-        <select id="language" class="form-select w-50 mx-auto my-3">
-            <option value="">Any Language</option> <!-- Default: No filtering -->
-        </select>
+        <select id="language" class="form-select w-50 mx-auto my-3"></select>
 
         <!-- Sorting Selection -->
         <label for="sort_by" class="h5">Sort By:</label>
@@ -72,11 +71,22 @@
     </div>
 
     <script>
+        // ✅ Load all available languages dynamically from Flask API
         async function loadLanguages() {
             let response = await fetch("/get-languages");
             let languages = await response.json();
             let languageDropdown = document.getElementById("language");
 
+            // Clear any existing options before adding new ones
+            languageDropdown.innerHTML = "";
+
+            // Add "Any Language" as the first option
+            let defaultOption = document.createElement("option");
+            defaultOption.value = "";
+            defaultOption.textContent = "Any Language";
+            languageDropdown.appendChild(defaultOption);
+
+            // Populate the dropdown with available languages
             languages.forEach(lang => {
                 let option = document.createElement("option");
                 option.value = lang.code;
@@ -85,24 +95,43 @@
             });
         }
 
+        // ✅ Fetch a movie based on selected filters
         async function fetchMovie() {
             let genre = document.getElementById("genre").value;
             let certification = document.getElementById("certification").value;
             let language = document.getElementById("language").value;
             let sort_by = document.getElementById("sort_by").value;
 
+            // Show loading message while fetching
+            document.getElementById("movieContainer").innerHTML = "<p class='text-warning'>Fetching movie...</p>";
+
             let response = await fetch(`/get-movie?genre=${genre}&certification=${certification}&language=${language}&sort_by=${sort_by}`);
             let movie = await response.json();
 
-            if (movie.error) {
-                document.getElementById("movieContainer").innerHTML = "<p class='text-danger'>No movie found!</p>";
+            if (movie.status === "success") {
+                // ✅ A matching movie was found
+                document.getElementById("movieContainer").innerHTML = `
+                    <p class="h4">${movie.title} (${movie.year})</p>
+                    <img class="img-fluid rounded shadow-lg my-3" style="max-width: 300px;" src="${movie.poster}">
+                    <p>⭐ IMDb Rating: ${movie.rating}</p>
+                    <a class="btn btn-warning" href="${movie.link}" target="_blank">More Info</a>
+                `;
+            } else if (movie.status === "fallback") {
+                // ✅ No match, but suggesting a random English movie
+                document.getElementById("movieContainer").innerHTML = `
+                    <p class="text-danger">${movie.message}</p>
+                    <p class="h4">${movie.title} (${movie.year})</p>
+                    <img class="img-fluid rounded shadow-lg my-3" style="max-width: 300px;" src="${movie.poster}">
+                    <p>⭐ IMDb Rating: ${movie.rating}</p>
+                    <a class="btn btn-warning" href="${movie.link}" target="_blank">More Info</a>
+                `;
             } else {
-                document.getElementById("movieTitle").innerText = `${movie.title} (${movie.year})`;
-                document.getElementById("moviePoster").src = movie.poster;
-                document.getElementById("moviePoster").style.display = "block";
+                // ❌ No movies found at all
+                document.getElementById("movieContainer").innerHTML = "<p class='text-danger'>No movie found! Try changing filters.</p>";
             }
         }
 
+        // ✅ Load languages when the page loads
         window.onload = loadLanguages;
     </script>
 
