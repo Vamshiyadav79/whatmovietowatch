@@ -25,6 +25,22 @@ SORT_OPTIONS = {
     "newest": "release_date.desc"
 }
 
+
+@app.route("/get-languages", methods=["GET"])
+def get_languages():
+    """Fetch all available languages from TMDb API."""
+    url = f"https://api.themoviedb.org/3/configuration/languages?api_key={TMDB_API_KEY}"
+
+    response = requests.get(url)
+    data = response.json()
+
+    if isinstance(data, list):  # Ensure the response is a list
+        languages = [{"code": lang["iso_639_1"], "name": lang["english_name"]} for lang in data]
+        return jsonify(languages)
+
+    return jsonify({"error": "Failed to fetch languages"}), 500
+
+
 def get_movie(genre, certification, language, sort_by):
     """Fetch a movie from TMDb API based on user-selected filters."""
 
@@ -46,14 +62,17 @@ def get_movie(genre, certification, language, sort_by):
             "title": random_movie["title"],
             "year": random_movie.get("release_date", "N/A")[:4],  # Get only the year
             "rating": random_movie["vote_average"],
-            "poster": f"https://image.tmdb.org/t/p/w500{random_movie['poster_path']}" if random_movie["poster_path"] else "",
+            "poster": f"https://image.tmdb.org/t/p/w500{random_movie['poster_path']}" if random_movie[
+                "poster_path"] else "",
             "link": f"https://www.themoviedb.org/movie/{random_movie['id']}",
         }
     return None
 
+
 @app.route("/")
 def home():
     return render_template("index.html")
+
 
 @app.route("/get-movie", methods=["GET"])
 def get_movie_api():
@@ -67,6 +86,7 @@ def get_movie_api():
     if movie:
         return jsonify(movie)
     return jsonify({"error": "No movie found!"})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
