@@ -58,6 +58,14 @@
             <option value="ja">Japanese</option>
         </select>
 
+        <!-- Sorting Selection -->
+        <label for="sort_by" class="h5">Sort By:</label>
+        <select id="sort_by" class="form-select w-50 mx-auto my-3">
+            <option value="popular">Most Popular</option>
+            <option value="top_rated">Highest Rated</option>
+            <option value="newest">Newest Releases</option>
+        </select>
+
         <button class="btn btn-primary btn-lg" onclick="fetchMovie()">🎥 Suggest a Movie</button>
 
         <div id="movieContainer" class="mt-5">
@@ -73,8 +81,9 @@
             let genre = document.getElementById("genre").value;
             let certification = document.getElementById("certification").value;
             let language = document.getElementById("language").value;
+            let sort_by = document.getElementById("sort_by").value;
 
-            let response = await fetch(`/get-movie?genre=${genre}&certification=${certification}&language=${language}`);
+            let response = await fetch(`/get-movie?genre=${genre}&certification=${certification}&language=${language}&sort_by=${sort_by}`);
             let movie = await response.json();
 
             if (movie.error) {
